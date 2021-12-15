@@ -1,0 +1,132 @@
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(9, 3, 4, 5, 6, 7); 
+
+#define CHAR_MAN 0
+#define CHAR_OBSTACLE 1 
+#define CHAR_EMPTY " "
+#define CHAR_MAN_JUMP 3
+
+#define BUTTON_PIN 2
+
+#define OBSTACLES_NUMBER 2
+
+byte man[8] = {
+  B01100,
+  B01100,
+  B00000,
+  B01110,
+  B11100,
+  B01100,
+  B11010,
+  B10011
+};
+
+byte manJump[8] = {
+  B01100,
+  B01100,
+  B00000,
+  B11110,
+  B01101,
+  B11111,
+  B10000,
+  B00000,
+};
+
+byte obstacle[8] = {
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111
+};
+
+struct JUMP {
+  bool isExecuted;
+  int left;
+};
+
+const int position = 1;
+const int delayTime = 500;
+JUMP jump = {false, 0};
+
+int obstacles[OBSTACLES_NUMBER] = {
+  12,11
+};
+
+void moveObstacles() {
+  for(int i = 0; i < OBSTACLES_NUMBER; ++i) {
+   	lcd.setCursor(obstacles[i],1);
+  	lcd.write(CHAR_EMPTY);
+    --obstacles[i]; 
+  }
+  
+  for(int i = 0; i < OBSTACLES_NUMBER; ++i) {
+    lcd.setCursor(obstacles[i],1);
+  	lcd.write(byte(CHAR_OBSTACLE));
+  }
+}
+
+void buttonPressed() {
+  lcd.setCursor(position, 1);
+  lcd.print(CHAR_EMPTY);
+  
+  lcd.setCursor(position,0);
+  lcd.write(byte(CHAR_MAN_JUMP));
+  
+  jump.isExecuted = true;
+  jump.left = 4;
+}
+
+void makeJump() {
+ --jump.left;
+  if(jump.left == 0) {
+   	jump.isExecuted = false;
+    lcd.setCursor(position, 0);
+    lcd.write(CHAR_EMPTY);
+    lcd.setCursor(position, 1);
+    lcd.write(byte(CHAR_MAN));
+  }
+}
+
+void checkCollision() {
+  
+  for(int i=0; i < OBSTACLES_NUMBER; ++i) {
+  	if(!jump.isExecuted && obstacles[i] == position) {
+    	lcd.setCursor(0,0);
+      	lcd.print("Koniec gry!");
+        break;
+  	}
+  }
+}
+
+void setup() {
+  pinMode(BUTTON_PIN, INPUT_PULLUP); //Przycisk jako wejście
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), 
+                  buttonPressed, FALLING);
+  
+  lcd.begin(16, 2); //Deklaracja typu
+  
+  lcd.createChar(CHAR_MAN, man);
+  lcd.createChar(CHAR_OBSTACLE, obstacle);
+  lcd.createChar(CHAR_MAN_JUMP, manJump);
+  
+  lcd.setCursor(position,1);
+  lcd.write(byte(CHAR_MAN));
+  
+  for(int i = 0; i < OBSTACLES_NUMBER; ++i) {
+    lcd.setCursor(obstacles[i],1);
+  	lcd.write(byte(CHAR_OBSTACLE));
+  }
+}
+ 
+void loop() {
+  delay(delayTime);
+  moveObstacles();
+  if(jump.isExecuted) {
+	makeJump(); 
+  }
+  checkCollision();
+}
